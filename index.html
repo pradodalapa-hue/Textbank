@@ -72,8 +72,36 @@
         .btn-bt { background: #0044cc; color: #fff; }              
         #modal-auditoria { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; flex-direction: column; padding: 20px; border: 5px solid var(--ouro); }
         .total-caixa { color: #00ff00; font-size: 1.8rem; text-align: center; border: 1px solid #00ff00; margin: 15px 0; padding: 10px; font-weight: 900; }
-.install-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: none; }
-        #btnInstallPWA { background: linear-gradient(135deg, #d4af37, #aa8c2c); color: #000000; border: 2px solid #ffd700; padding: 15px 25px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+.install-container { 
+            position: fixed; 
+            top: 300px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            z-index: 999999; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; /* Espaço entre o botão e a foto */
+        }
+        #btnInstallPWA { 
+            background: linear-gradient(135deg, #d4af37, #aa8c2c); 
+            color: #000000; 
+            border: 2px solid #ffd700; 
+            padding: 15px 25px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
+            white-space: nowrap;
+        }
+        .jdp-img-abaixo {
+            width: 150px; /* Altere o tamanho da largura da foto aqui se preferir */
+            height: auto;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
     </style>
 
     <link rel="manifest" href="manifest.json">
@@ -89,7 +117,9 @@
 <body onclick="entrarFullScreen()">
 <div class="install-container" id="installContainer">
         <button id="btnInstallPWA" onclick="instalarApp()">INSTALAR SISTEMA</button>
-    </div>         
+        <!-- COLE A URL DA SUA FOTO ABAIXO NO CAMPO SRC -->
+        <img src="https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/img/jdp_1789756877482_1001557052.jpg" alt="JDP Industrial" class="jdp-img-abaixo">
+    </div>
     
     <div id="modal-auditoria">
         <div style="display:flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--ouro); padding-bottom: 10px;">
@@ -405,4 +435,4 @@
         }
     </script>
 </body>
-</html>
+    </html>
