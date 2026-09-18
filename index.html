@@ -50,7 +50,6 @@
     <link rel="icon" sizes="192x192" href="icon-192.png">
     <link rel="icon" sizes="512x512" href="icon-512.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    
 </head>
 <body onclick="entrarFullScreen()">
     <div class="install-container" id="installContainer">
@@ -100,10 +99,11 @@
                         <div id="confirmacao-valor" style="font-size: 2rem; font-weight: 900; color: var(--ouro); background: rgba(15, 23, 42, 0.9); padding: 10px 40px; border-radius: 50px; margin-top: 10px; border: 2px solid var(--ouro);"></div>
                     </div>
                 </div>
-                <div id="tela-bloqueio" class="camada" style="background: #000; color: #fff; z-index: 9999;">
+                <!-- TELA DE BLOQUEIO ABSOLUTO POR VENCIMENTO -->
+                <div id="tela-bloqueio" class="camada" style="background: #000; color: #fff; z-index: 99999; display: flex;">
                     <h2 style="color: var(--vermelho); font-size: 1.8rem; margin-bottom: 10px;">⚠️ ALUGUEL VENCIDO</h2>
-                    <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 20px;">Este terminal JDP foi bloqueado por término de contrato.</p>
-                    <button onclick="desbloquearPorSenha()" style="background: var(--ouro); color: #000; border: none; padding: 12px 25px; font-weight: 900; border-radius: 10px; cursor: pointer;">INSERIR NOVA SENHA / DATA</button>
+                    <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 20px;">Este terminal JDP está bloqueado por término de contrato. Nenhuma função está disponível.</p>
+                    <button onclick="desbloquearPorSenha()" style="background: var(--ouro); color: #000; border: none; padding: 15px 30px; font-weight: 900; border-radius: 10px; cursor: pointer; font-size: 1rem;">INSERIR SENHA / ATUALIZAR DATA</button>
                 </div>
             </div>
         </div>
@@ -137,6 +137,7 @@
         const SENHA_MESTRA_JDP = "778899";
         let toquesLogo = 0;
         let timerToques = null;
+        let sistemaBloqueado = false;
 
         window.addEventListener('DOMContentLoaded', () => {
             verificarValidadeSistema();
@@ -154,6 +155,9 @@
                 let dataHoje = new Date();
                 if (dataHoje > dataVencimento) {
                     bloquearSistemaPorVencimento("Contrato expirado em: " + dataVencimentoStr);
+                } else {
+                    document.getElementById('tela-bloqueio').style.display = 'none';
+                    sistemaBloqueado = false;
                 }
             } catch (e) {
                 bloquearSistemaPorVencimento("Erro de integridade de segurança.");
@@ -161,6 +165,7 @@
         }
 
         function bloquearSistemaPorVencimento(motivo) {
+            sistemaBloqueado = true;
             document.querySelectorAll('.camada').forEach(c => c.style.display = 'none');
             document.getElementById('tela-bloqueio').style.display = 'flex';
             atualizarHelenaStatus("BLOQUEADO: " + motivo);
@@ -201,7 +206,6 @@
             localStorage.setItem('jdp_device_uuid', meuDeviceID);
         }
 
-        const VIDEO_COMEMORACAO = "https://raw.githubusercontent.com/pradodalapa-hue/fotos-industrial/main/media/jdp_1786372933817_gemini_generated_video_6e940877.mp4";
         const CHAVE = "70945887205", EMISSOR = "JOSE DIVINO PRADO DA LAPA", CIDADE = "MANAUS";
         const fbConfig = { apiKey: "AIzaSyCEdXF7ScnMYz0Ce0OW-B_UJ8Bm5Pl9m8o", databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com" };
         firebase.initializeApp(fbConfig);
@@ -209,7 +213,12 @@
         let montante = "", status = "TV", motorBT = null;
 
         function gerarPagamento() {
+            if (sistemaBloqueado) {
+                alert("⚠️ Terminal Bloqueado por Vencimento!");
+                return;
+            }
             if(!montante) return;
+            
             let vencimentoCriptografado = localStorage.getItem('jdp_vencimento_token');
             try {
                 let dataVencimento = new Date(atob(vencimentoCriptografado) + "T23:59:59");
@@ -245,55 +254,108 @@
             new QRCode(document.getElementById('qr-code'), { text: pixCode, width: 200, height: 200 });
         }
 
-        // ==========================================
-        // FUNÇÃO ZAP BLINDADA (COMPARTILHAMENTO VIA WHATSAPP)
-        // ==========================================
         async function compartilharPix() {
-            if (status !== "PIX") {
-                alert("⚠️ Gere um Pix primeiro para poder compartilhar!");
-                return;
-            }
+            if (sistemaBloqueado) { alert("⚠️ Terminal Bloqueado por Vencimento!"); return; }
+            if (status !== "PIX") { alert("⚠️ Gere um Pix primeiro para poder compartilhar!"); return; }
 
             const codigoPix = document.getElementById('payload-txt').innerText;
             const valorVenda = document.getElementById('pix-valor-txt').innerText;
             const mensagem = `🍔 *DONY BURGER'S* - Pague com Pix!\n💰 Valor: ${valorVenda}\n\nCopie e cole o código Pix abaixo:\n\n\`${codigoPix}\``;
 
-            // Tenta usar a API de compartilhamento nativa de imagem se disponível
             try {
                 const elementoAreaPix = document.getElementById('area-pix');
                 const canvas = await html2canvas(elementoAreaPix, { useCORS: true, allowTaint: true });
                 canvas.toBlob(async (blob) => {
                     const file = new File([blob], "pix_dony.png", { type: "image/png" });
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Pix Dony Burger\'s',
-                            text: mensagem
-                        });
+                        await navigator.share({ files: [file], title: 'Pix Dony Burger\'s', text: mensagem });
                         return;
                     }
-                    throw new Error("Compartilhamento de arquivo não suportado.");
+                    throw new Error("Compartilhamento não suportado.");
                 }, 'image/png');
             } catch (err) {
-                // Fallback Direto: Abre o WhatsApp web/app com o texto e código Pix prontos para enviar
                 const urlWhatsapp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
                 window.open(urlWhatsapp, '_blank');
             }
         }
 
-        function show(id) { document.querySelectorAll('.camada').forEach(c => c.style.display = 'none'); document.getElementById(id).style.display = 'flex'; }
-        function input(n) { if(status === "OK") reset(); status = "DIG"; show('tela-digito'); montante += n; atualizarVisor(); }
-        function atualizarVisor() { let val = (parseFloat(montante)/100) || 0; document.getElementById('v-grande').innerText = val.toLocaleString('pt-BR', {style:'currency', currency:'BRL'}); }
-        function apagar() { montante = montante.slice(0,-1); if(!montante) reset(); else atualizarVisor(); }
-        function gatilhoBotaoAmarelo() { status === "PIX" ? confirmarFinal((parseFloat(montante)/100).toFixed(2)) : apagar(); }
-        function reset() { montante = ""; status = "TV"; show('tela-logo'); atualizarHelenaStatus("OPERACIONAL PRONTO"); }
-        function confirmarFinal(valorRecebido) { status = "OK"; tocarSom(); show('tela-sucesso'); setTimeout(reset, 12000); }
-        function atualizarHelenaStatus(msg) { document.getElementById('helena-status').innerHTML = `<span style="color: var(--azul);">HELENA: ${msg}</span>`; }
-        function tocarSom() { const ctx = new AudioContext(); const osc = ctx.createOscillator(); osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.2); }
-        function entrarFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); }
-        async function conectarBT() { try { const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); const server = await device.gatt.connect(); const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb'); const chars = await service.getCharacteristics(); motorBT = chars.find(c => c.properties.write); alert("Impressora Conectada!"); } catch (e) { alert("Erro BT: " + e); } }
-    </script>
+        function show(id) { 
+            if (sistemaBloqueado) return;
+            document.querySelectorAll('.camada').forEach(c => { if(c.id !== 'tela-bloqueio') c.style.display = 'none'; }); 
+            document.getElementById(id).style.display = 'flex'; 
+        }
 
+        function input(n) { 
+            if (sistemaBloqueado) return;
+            if(status === "OK") reset(); 
+            status = "DIG"; 
+            show('tela-digito'); 
+            montante += n; 
+            atualizarVisor(); 
+        }
+
+        function atualizarVisor() { 
+            let val = (parseFloat(montante)/100) || 0; 
+            document.getElementById('v-grande').innerText = val.toLocaleString('pt-BR', {style:'currency', currency:'BRL'}); 
+        }
+
+        function apagar() { 
+            if (sistemaBloqueado) return;
+            montante = montante.slice(0,-1); 
+            if(!montante) reset(); 
+            else atualizarVisor(); 
+        }
+
+        function gatilhoBotaoAmarelo() { 
+            if (sistemaBloqueado) return;
+            status === "PIX" ? confirmarFinal((parseFloat(montante)/100).toFixed(2)) : apagar(); 
+        }
+
+        function reset() { 
+            if (sistemaBloqueado) return;
+            montante = ""; 
+            status = "TV"; 
+            show('tela-logo'); 
+            atualizarHelenaStatus("OPERACIONAL PRONTO"); 
+        }
+
+        function confirmarFinal(valorRecebido) { 
+            status = "OK"; 
+            tocarSom(); 
+            show('tela-sucesso'); 
+            setTimeout(reset, 12000); 
+        }
+
+        function atualizarHelenaStatus(msg) { 
+            document.getElementById('helena-status').innerHTML = `<span style="color: var(--azul);">HELENA: ${msg}</span>`; 
+        }
+
+        function tocarSom() { 
+            const ctx = new AudioContext(); 
+            const osc = ctx.createOscillator(); 
+            osc.connect(ctx.destination); 
+            osc.start(); 
+            osc.stop(ctx.currentTime + 0.2); 
+        }
+
+        function entrarFullScreen() { 
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen(); 
+        }
+
+        async function conectarBT() { 
+            if (sistemaBloqueado) { alert("⚠️ Terminal Bloqueado por Vencimento!"); return; }
+            try { 
+                const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] }); 
+                const server = await device.gatt.connect(); 
+                const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb'); 
+                const chars = await service.getCharacteristics(); 
+                motorBT = chars.find(c => c.properties.write); 
+                alert("Impressora Conectada!"); 
+            } catch (e) { 
+                alert("Erro BT: " + e); 
+            } 
+        }
+    </script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
